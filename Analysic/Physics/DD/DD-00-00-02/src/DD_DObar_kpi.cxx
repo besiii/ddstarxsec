@@ -1,4 +1,4 @@
-// e+e- --------->        D  anti-D
+// e+e- --------->      D0bar + anything => D0bar -> k+ pi-
 //                                         
 //                                  
 //by suyumo
@@ -102,6 +102,7 @@ private:
   // output file
   std::string m_output_filename;
   bool m_isMonteCarlo; 
+  double m_input_ecms;
   TFile* m_fout;
 
   // define Histograms
@@ -161,6 +162,8 @@ private:
   double m_prob_km;
   double m_prob_p; 
   double m_prob_pb; 
+  double m_prob_ep; 
+  double m_prob_em; 
 
   // pion info
   double m_pim_px;
@@ -268,7 +271,7 @@ private:
   // functions
   void book_histogram();
   void book_tree(); 
-  void book_tree_4();
+  void book_mc_D0bar();
   void book_mc_psi3770();
   bool buildDD();
   void saveGenInfo(); 
@@ -293,8 +296,10 @@ private:
   void calcTrackPID_P(EvtRecTrackIterator,
 		    double&,
 		    double&,
+		    double&,
 		    double&);
   void calcTrackPID_M(EvtRecTrackIterator,
+		    double&,
 		    double&,
 		    double&,
 		    double&);
@@ -323,15 +328,39 @@ LOAD_FACTORY_ENTRIES( DD )
 // constants
 //
 //
-const double ecms=4.260;
-const double ebeam=ecms/2.;
-const double PION_MASS = 0.13957;
-const double KAON_MASS  = 0.493677;
+//const double ecms=3.807;// 3.810->3.807
+//const double ecms=3.890;// 3.890 R scan data
+//const double ecms=3.896;// 3.900->3.896
+//const double ecms=3.950;// 3.950 R scan data
+//const double ecms=3.980;// 3.980 R scan data
+//const double ecms=4.008;// 4.010->4.008
+//const double ecms=4.030;// 4.030 R scan data
+//const double ecms=4.040;// 4.040 R scan data
+//const double ecms=4.055;// 4.055 R scan data
+//const double ecms=4.070;// 4.070 R scan data
+//const double ecms=4.085;// 4.090->4.085
+//const double ecms=4.120;// 4.120 R scan data
+//const double ecms=4.140;// 4.140 R scan data
+//const double ecms=4.150;// 4.150 R scan data
+//const double ecms=4.170;// 4.170 R scan data
+//const double ecms=4.188;// 4.190->4.188
+//const double ecms=4.190;// new data 4190
+//const double ecms=4.200;// new data 4200
+//const double ecms=4.210;// new data 4210
+//const double ecms=4.220;// new data 4220
+//const double ecms=4.208;// 4.210->4.208
+//const double ecms=4.217;// 4.220->4.217
+//const double ecms=4.226; // 4.23->4.226
+//const double ecms=4.242; // 4.245->4.242
+//const double ecms=4.260;
+//const double ecms=4.308; //4.310->4.308
+//const double ecms=4.358;// 4.36->4.358
+//const double ecms=4.387;// 4.39->4.387
 
+
+const double PION_MASS = 0.13957;
+const double KAON_MASS = 0.493677;
 const static double ctheta( 0.022 );
-const static HepLorentzVector p4cm(ecms*sin(ctheta/2.),0.0,0.0,ecms);
-const static HepLorentzVector p4cm2(-ecms*sin(ctheta/2.),0.0,0.0,ecms);
-const static Hep3Vector LAB2CM( p4cm2.boostVector() );
 
 const int PIONPLUS_PDG_ID = 211;
 const int KAONPLUS_PDG_ID = 321;
@@ -357,6 +386,7 @@ DD::DD(const std::string& name, ISvcLocator* pSvcLocator) :
 {
   declareProperty("OutputFileName", m_output_filename);
   declareProperty("IsMonteCarlo", m_isMonteCarlo);
+  declareProperty("Ecms",  m_input_ecms);
   declareProperty("Vr0cut", m_vr0cut=1.0);
   declareProperty("Vz0cut", m_vz0cut=10.0);
   declareProperty("ChaCosthetaCut", m_cha_costheta_cut=0.93);
@@ -392,7 +422,7 @@ StatusCode DD::initialize(){
 
   book_histogram(); 
   book_tree();
-  book_tree_4();
+  book_mc_D0bar();
   book_mc_psi3770();
 
   log << MSG::INFO << "successfully return from initialize()" <<endmsg;
@@ -418,7 +448,6 @@ StatusCode DD::execute() {
 
     if(m_isMonteCarlo)  saveGenInfo(); // only fill tree for the selected events
     if(m_isMonteCarlo)  saveGenInfo_ee_gampsi3770(); // only fill tree for the selected events
-   counter[2]++;
 }
 
  return StatusCode::SUCCESS; 
@@ -437,6 +466,7 @@ StatusCode DD::finalize() {
 
   std::cout << "able:MC Truth==  " << counter[1] << std::endl; 
   std::cout << "final ntupe  ==  " << counter[2] << std::endl;
+  std::cout << "ECMS  ==  " << m_input_ecms << std::endl;
   return StatusCode::SUCCESS;
 }
 
@@ -461,9 +491,9 @@ void DD::book_histogram() {
 }
 
 
-void DD::book_tree_4() {
+void DD::book_mc_D0bar() {
 
-  m_tree_4=new TTree("mc4", "DD_mc4");
+  m_tree_4=new TTree("mc_D0bar_kpi", "DD_mc4");
   if (!m_tree_4) return; 
 
   // MC information after particls going through detectors
@@ -545,7 +575,7 @@ void DD::book_mc_psi3770() {
 
 void DD::book_tree() {
 
-  m_tree=new TTree("mc", "DD");
+  m_tree=new TTree("D0bar_kpi", "DD");
   if (!m_tree) return; 
 
   //commom info
@@ -575,6 +605,8 @@ void DD::book_tree() {
   m_tree->Branch("prob_km", &m_prob_km, "prob_km/D"); 
   m_tree->Branch("prob_p", &m_prob_p, "prob_p/D"); 
   m_tree->Branch("prob_pb", &m_prob_pb, "prob_pb/D"); 
+  m_tree->Branch("prob_ep", &m_prob_ep, "prob_ep/D"); 
+  m_tree->Branch("prob_em", &m_prob_em, "prob_em/D"); 
 
   // save pion info
   m_tree->Branch("pim_px", &m_pim_px, "pim_px/D");
@@ -673,6 +705,9 @@ void DD::book_tree() {
    std::vector<HepLorentzVector>  P_ee_D_star_antiD0_k, P_ee_D_star_antiD0_pi; 
    std::vector<HepLorentzVector>  P_ee_D_star_antiD0, P_ee_antiD0star_antiD0; 
    std::vector<HepLorentzVector>  P_ee_D_star, P_ee_antiD0star; 
+   HepLorentzVector p4cm(m_input_ecms*sin(ctheta/2.),0.0,0.0,m_input_ecms);
+   HepLorentzVector p4cm2(-m_input_ecms*sin(ctheta/2.),0.0,0.0,m_input_ecms);
+   Hep3Vector LAB2CM( p4cm2.boostVector() );
 
    P_ee_antiD0_k.clear();
    P_ee_antiD0_pi.clear();
@@ -886,6 +921,7 @@ void DD::book_tree() {
                      m_antiD0star_m=P_ee_antiD0star_heli.m();
                      double cos_antiD0star = cos(P_ee_antiD0star_heli.vect().angle(P_ee_antiD0star_antiD0_heli.vect()));
                      m_cos_antiD0star=cos_antiD0star; 
+                     P_ee_antiD0star_antiD0_heli.boost(LAB2CM); 
                      P_ee_antiD0star_antiD0_heli.boost(antiD02antiD0starCM); 
                      P_ee_antiD0star_heli.boost(LAB2CM);
                      double cosheli_antiD0star = cos(P_ee_antiD0star_heli.vect().angle(P_ee_antiD0star_antiD0_heli.vect()));
@@ -992,6 +1028,9 @@ void DD::saveGenInfo_ee_gampsi3770() //ee->ISRpsi3770,psi3770->D0antiD0,antiD0->
   SmartDataPtr<Event::McParticleCol> mcParticleCol(eventSvc(), "/Event/MC/McParticleCol");
 
 
+HepLorentzVector p4cm(m_input_ecms*sin(ctheta/2.),0.0,0.0,m_input_ecms);
+HepLorentzVector p4cm2(-m_input_ecms*sin(ctheta/2.),0.0,0.0,m_input_ecms);
+Hep3Vector LAB2CM( p4cm2.boostVector() );
 int nee_psi3770_antiD0_k_truth=0;
 int nee_psi3770_antiD0_pi_truth=0;
 int nee_psi3770_antiD0_truth=0;
@@ -1011,10 +1050,12 @@ Event::McParticleCol::iterator iter_mc=mcParticleCol->begin();
   for (; iter_mc != mcParticleCol->end(); iter_mc++){
     //if ((*iter_mc)->primaryParticle()) continue;
     //if (!(*iter_mc)->decayFromGenerator()) continue;
+    //std::cout << " particleProperty==  " << (*iter_mc)->particleProperty() << std::endl;
 
     HepLorentzVector  mctrue_track = (*iter_mc)->initialFourMomentum();
 
-    if(((*iter_mc)->mother().mother()).particleProperty()==PSI3770_PDG_ID){
+   // if(((*iter_mc)->mother().mother()).particleProperty()==PSI3770_PDG_ID){
+    if(((*iter_mc)->mother().mother()).particleProperty()==PSI4260_PDG_ID){
         if(((*iter_mc)->mother()).particleProperty()==-D0_PDG_ID){
               if((*iter_mc)->particleProperty()==KAONPLUS_PDG_ID)
                    {
@@ -1035,7 +1076,8 @@ Event::McParticleCol::iterator iter_mc=mcParticleCol->begin();
       }
 
 
-     if(((*iter_mc)->mother()).particleProperty()==PSI3770_PDG_ID){
+    // if(((*iter_mc)->mother()).particleProperty()==PSI3770_PDG_ID){
+     if(((*iter_mc)->mother()).particleProperty()==PSI4260_PDG_ID){
    	   if((*iter_mc)->particleProperty()==D0_PDG_ID)
    	      {  nee_psi3770_D0_truth++; 
                  P_ee_psi3770_D0.push_back(mctrue_track); }
@@ -1054,7 +1096,8 @@ Event::McParticleCol::iterator iter_mc=mcParticleCol->begin();
              HepLorentzVector P_ee_psi3770_antiD0_kpi = (P_ee_psi3770_antiD0_k[0]+P_ee_psi3770_antiD0_pi[0]);
              P_ee_psi3770_antiD0_kpi.boost(LAB2CM);
 
-             if(nee_psi3770_anything_truth==2&&nee_psi3770_antiD0_truth==1){
+             //if(/*nee_psi3770_anything_truth==2&&*/nee_psi3770_antiD0_truth==1){
+             if(nee_psi3770_anything_truth==3&&nee_psi3770_antiD0_truth==1){
                 if(nee_psi3770_D0_truth==1)
                {   m_mc1_mom_ee_psi3770_antiD0D0_kpi=P_ee_psi3770_antiD0_kpi.rho();
                    m_mc1_ivtmass_ee_psi3770_antiD0D0_kpi=P_ee_psi3770_antiD0_kpi.m(); }
@@ -1063,12 +1106,12 @@ Event::McParticleCol::iterator iter_mc=mcParticleCol->begin();
 
       }
     
-    if(nee_psi3770_antiD0_truth==1&&nee_psi3770_D0_truth==1&&nee_psi3770_anything_truth==2)
+    if(nee_psi3770_antiD0_truth==1&&nee_psi3770_D0_truth==1/*&&nee_psi3770_anything_truth==2*/)
       {
        HepLorentzVector P4_ee_psi3770_antiD0 = P_ee_psi3770_antiD0[0];
        HepLorentzVector P4_ee_psi3770_D0 = P_ee_psi3770_D0[0];
-       m_mc_ivtmass_ee_psi3770=(P4_ee_psi3770_antiD0+P4_ee_psi3770_D0).m();
-       m_mc_mom_ee_psi3770=(P4_ee_psi3770_antiD0+P4_ee_psi3770_D0).rho();
+       m_mc_ivtmass_ee_psi3770=((P4_ee_psi3770_antiD0+P4_ee_psi3770_D0).boost(LAB2CM)).m();
+       m_mc_mom_ee_psi3770=((P4_ee_psi3770_antiD0+P4_ee_psi3770_D0).boost(LAB2CM)).rho();
        }
 
     
@@ -1119,6 +1162,9 @@ int DD::selectChargedTracks(SmartDataPtr<EvtRecEvent> evtRecEvent,
 				   std::vector<int> & iMGood) {
 
   CLHEP::Hep3Vector xorigin = getOrigin(); 
+  HepLorentzVector p4cm(m_input_ecms*sin(ctheta/2.),0.0,0.0,m_input_ecms);
+  HepLorentzVector p4cm2(-m_input_ecms*sin(ctheta/2.),0.0,0.0,m_input_ecms);
+  Hep3Vector LAB2CM( p4cm2.boostVector() );
 
   std::vector<int> iGood;
   iGood.clear();
@@ -1192,9 +1238,9 @@ int DD::selectKaonPionMinus(SmartDataPtr<EvtRecTrackCol> evtRecTrkCol,
       if (mdcTrk_m->charge() > 0) continue; // only negative charged tracks
 
       // polar angle for both kaon and pion
-      if ( ! ( fabs(cos(mdcTrk_p->theta())) < m_kaon_polar_angle_max &&
-      	       fabs(cos(mdcTrk_m->theta())) < m_pion_polar_angle_max )) continue;
-      if ( !evtflw_filled ) h_evtflw->Fill(3); // |cos#theta| cut
+      //if ( ! ( fabs(cos(mdcTrk_p->theta())) < m_kaon_polar_angle_max &&
+      //	       fabs(cos(mdcTrk_m->theta())) < m_pion_polar_angle_max )) continue;
+      //if ( !evtflw_filled ) h_evtflw->Fill(3); // |cos#theta| cut
 
       // pion and kaon momentum
       // if ( ! ( fabs(mdcTrk_p->p()) < m_kaon_momentum_max  &&
@@ -1206,23 +1252,27 @@ int DD::selectKaonPionMinus(SmartDataPtr<EvtRecTrackCol> evtRecTrkCol,
       // if ( !evtflw_filled ) h_evtflw->Fill(4); //|p| cut  
 
       // track PID
-      double prob_pip, prob_kp, prob_pim, prob_km, prob_p, prob_pb; 
-      calcTrackPID_P(itTrk_p, prob_pip, prob_kp, prob_p);  
-      calcTrackPID_M(itTrk_m, prob_pim, prob_km, prob_pb);
+      double prob_pip, prob_kp, prob_pim, prob_km, prob_p, prob_pb, prob_ep, prob_em; 
+      calcTrackPID_P(itTrk_p, prob_pip, prob_kp, prob_p, prob_ep);  
+      calcTrackPID_M(itTrk_m, prob_pim, prob_km, prob_pb,prob_em);
       // printf(">>> %f, %f, %f, %f \n", prob_pip, prob_kp, prob_pim, prob_km);
 
       m_prob_pip = prob_pip;
       m_prob_kp = prob_kp;
       m_prob_p = prob_p;
+      m_prob_ep = prob_ep;
       m_prob_pim = prob_pim;
       m_prob_km = prob_km;
       m_prob_pb = prob_pb;
+      m_prob_em = prob_em;
       
       if(! (prob_kp > prob_pip &&
        	    prob_kp > m_prob_kaon_min &&
             prob_kp > prob_p &&
+            prob_kp > prob_ep &&
        	    prob_pim > prob_km &&
             prob_pim > prob_pb &&
+            prob_pim > prob_em &&
        	    prob_pim > m_prob_pion_min) ) continue;
 
       if ( !evtflw_filled ) h_evtflw->Fill(5); //PID
@@ -1238,6 +1288,7 @@ int DD::selectKaonPionMinus(SmartDataPtr<EvtRecTrackCol> evtRecTrkCol,
       saveRepeatInfo();
       
 
+      counter[2]++;
       nkpi++;
       evtflw_filled = true;
     }
@@ -1250,45 +1301,51 @@ int DD::selectKaonPionMinus(SmartDataPtr<EvtRecTrackCol> evtRecTrkCol,
 void DD::calcTrackPID_P(EvtRecTrackIterator itTrk_p,
 			     double& prob_pip,
 			     double& prob_kp,
-			     double& prob_p) {
+			     double& prob_p,
+			     double& prob_ep) {
   prob_pip = 999.; 
   prob_kp = 999.; 
   prob_p = 999.; 
+  prob_ep = 999.; 
   ParticleID * pidp = ParticleID::instance();
   pidp->init();
   pidp->setMethod(pidp->methodProbability());
   pidp->setChiMinCut(4);
   pidp->setRecTrack(*itTrk_p);
   // use PID sub-system
-  pidp->usePidSys(pidp->useDedx() | pidp->useTof1() | pidp->useTof2());
-  pidp->identify(pidp->onlyPionKaonProton());
+  pidp->usePidSys(pidp->useDedx() | pidp->useTof1() | pidp->useTof2() | pidp->useEmc());
+  pidp->identify(pidp->onlyPion() | pidp->onlyKaon() | pidp->onlyProton() | pidp->onlyElectron());
   pidp->calculate();
   if(pidp->IsPidInfoValid()) {
     prob_pip = pidp->probPion();
     prob_kp  = pidp->probKaon();
     prob_p   = pidp->probProton();
+    prob_ep  = pidp->probElectron();
   }
 }
    void DD::calcTrackPID_M(EvtRecTrackIterator itTrk_m,
 			     double& prob_pim,
 			     double& prob_km,
-			     double& prob_pb) {
+			     double& prob_pb,
+			     double& prob_em) {
   prob_pim = 999.; 
   prob_km = 999.; 
   prob_pb = 999.; 
+  prob_em = 999.; 
   ParticleID * pidm = ParticleID::instance();
   pidm->init();
   pidm->setMethod(pidm->methodProbability());
   pidm->setChiMinCut(4);
   pidm->setRecTrack(*itTrk_m);
   // use PID sub-system
-  pidm->usePidSys(pidm->useDedx() | pidm->useTof1() | pidm->useTof2());
-  pidm->identify(pidm->onlyPionKaonProton());
+  pidm->usePidSys(pidm->useDedx() | pidm->useTof1() | pidm->useTof2() | pidm->useEmc());
+  pidm->identify(pidm->onlyPion() | pidm->onlyKaon() | pidm->onlyProton() | pidm->onlyElectron());
   pidm->calculate();
   if(pidm->IsPidInfoValid()) {
     prob_pim = pidm->probPion();
     prob_km  = pidm->probKaon();
     prob_pb  = pidm->probProton();
+    prob_em  = pidm->probElectron();
   }
 }
 
@@ -1297,6 +1354,9 @@ bool DD::hasGoodKaPiVertex(RecMdcKalTrack *kapTrk,
 				  bool evtflw_filled) {
 
  // HepLorentzVector pcms(0.011*m_ecms, 0., 0., m_ecms);
+  HepLorentzVector p4cm(m_input_ecms*sin(ctheta/2.),0.0,0.0,m_input_ecms);
+  HepLorentzVector p4cm2(-m_input_ecms*sin(ctheta/2.),0.0,0.0,m_input_ecms);
+  Hep3Vector LAB2CM( p4cm2.boostVector() );
 
   HepLorentzVector p4_vtx_kap, p4_vtx_pim, p4_vtx_kapi, p4_vtx_reckapi;
   WTrackParameter wvkapTrk, wvpimTrk;
@@ -1345,11 +1405,11 @@ bool DD::hasGoodKaPiVertex(RecMdcKalTrack *kapTrk,
   double coskapi = cos(p4_vtx_kap.vect().angle(p4_vtx_pim.vect()));
   double coskapisys = (p4_vtx_kap + p4_vtx_pim).cosTheta();
 
-  if( ! (coskapi < m_kpi_costheta_max) ) return false;
-  if( !evtflw_filled ) h_evtflw->Fill(6); // "cos#theta_{#k^{+}#pi^{-}}<0.99"
+  //if( ! (coskapi < m_kpi_costheta_max) ) return false;
+  //if( !evtflw_filled ) h_evtflw->Fill(6); // "cos#theta_{#k^{+}#pi^{-}}<0.99"
 
-  if( ! (fabs(coskapisys) < m_kpisys_costheta_max ) ) return false;
-  if( !evtflw_filled ) h_evtflw->Fill(7); // cos#theta_{#k#pi sys}<0.99 
+  //if( ! (fabs(coskapisys) < m_kpisys_costheta_max ) ) return false;
+  //if( !evtflw_filled ) h_evtflw->Fill(7); // cos#theta_{#k#pi sys}<0.99 
 
   saveVtxInfo(p4_vtx_kap, p4_vtx_pim); 
   m_vtx_mreckpi = p4_vtx_reckapi.m();
@@ -1446,6 +1506,9 @@ bool DD::hasGoodKaPiVertex(RecMdcKalTrack *kapTrk,
 			    SmartDataPtr<EvtRecTrackCol> evtRecTrkCol){
 
   double visibleEgam = 0;
+  HepLorentzVector p4cm(m_input_ecms*sin(ctheta/2.),0.0,0.0,m_input_ecms);
+  HepLorentzVector p4cm2(-m_input_ecms*sin(ctheta/2.),0.0,0.0,m_input_ecms);
+  Hep3Vector LAB2CM( p4cm2.boostVector() );
   for(vector<int>::size_type i=0; i<iGam.size(); i++)  {
     
     EvtRecTrackIterator itTrk = evtRecTrkCol->begin() + iGam[i];
@@ -1516,14 +1579,14 @@ bool DD::hasGoodKaPiVertex(RecMdcKalTrack *kapTrk,
 
  void DD::saveRepeatInfo(){
 
-            m_run=99999;
-            m_event=99999;
-            m_ncharged=99999;
-            m_nptrk=99999;
-            m_nmtrk=99999;
+          //  m_run=99999;
+          //  m_event=99999;
+          //  m_ncharged=99999;
+          //  m_nptrk=99999;
+          //  m_nmtrk=99999;
             m_visibleE=99999;
-            m_vr0=99999;
-            m_vz0=99999;
+          //  m_vr0=99999;
+          //  m_vz0=99999;
             m_nshow=99999;
             m_ngam=99999;
             m_visibleEgam=99999;

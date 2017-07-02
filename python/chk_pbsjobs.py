@@ -41,7 +41,7 @@ def main():
 
     log = src 
     logdir = src.split('/')[-1]
-    if logdir in ['data_4360', 'mc_psi4260','data_4260']:
+    if logdir in ['data_new_4210', 'data_4360','data_4260','data_4010']:
         logfiletype = 'BossLogFile'
     elif logdir == 'events':
         logfiletype = 'EventsLogFile'
