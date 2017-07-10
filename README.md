@@ -2,13 +2,13 @@
 
 D D star cross section 
 
-## Install v0.2 with developer account (suym) 
+## Install v0.3  
 
-> mkdir -p $HOME/bes/kpi
+> mkdir -p $HOME/ddstarxsec
 
-> cd $HOME/bes/kpi
+> cd $HOME/ddstarxsec
 
-> git clone git@github.com:suym/ddstarxsec.git v0.2
+> git clone git clone https://github.com/besiii/ddstarxsec.git v0.3
 
 ## Setup
 
