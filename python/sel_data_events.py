@@ -82,8 +82,8 @@ def main():
         nb = t.GetEntry(jentry)
         if nb<=0:
             continue
-        #if abs(t.vtx_mkpi-D0_MASS)<0.2:
-        if abs(t.vtx_mkpi-D0_MASS)<0.4:
+        if abs(t.vtx_mkpi-D0_MASS)<0.2:
+        #if abs(t.vtx_mkpi-D0_MASS)<0.4:
             t_4.Fill()
  
     t_4.Write()
